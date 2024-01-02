@@ -39,23 +39,30 @@ with app.app_context():
 def index():
     todo = db.session.execute(db.select(Tasks).where(Tasks.status == 'todo'))
     a = todo.scalars().all()
-    inprogress = db.session.execute(db.select(Tasks).where(Tasks.status == 'in_progress'))
+    inprogress = db.session.execute(db.select(Tasks).where(Tasks.status == 'inprogress'))
     b = inprogress.scalars().all()
     done = db.session.execute(db.select(Tasks).where(Tasks.status == 'done'))
-    c = todo.scalars().all()
+    c = done.scalars().all()
     addtask = AddTask()
     if addtask.validate_on_submit():
         db.session.add(
             Tasks(
                 name = addtask.data.get('name'),
                 summary = addtask.data.get('summary'),
-                description = addtask.data.get('name'),
+                description = addtask.data.get('description'),
                 status = 'todo',
             )
         )
-        return render_template("index.html", todo=a, inprogress=b, done=c)
-    return render_template("index.html", todo=a, inprogress=b, done=c)
+        db.session.commit()
+    return render_template("index.html", todo=a, inprogress=b, done=c, form=addtask)
 
+
+@app.route('/updatestatus/<int:taskid>&<string:newstatus>', methods=["GET", "POST"])
+def updatestatus(taskid, newstatus):
+    task = db.get_or_404(Tasks, taskid)
+    task.status = newstatus
+    db.session.commit()
+    return redirect(url_for('index'))
 
 if __name__ == "__main__":
     app.run(debug=True)
